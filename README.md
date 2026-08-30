@@ -1,27 +1,31 @@
-# WrapNest
+# Yule
 
-Shared Christmas lists for Rachel and Scott — people, ideas, budgets, and buys, with a lock so you can’t see what the other is getting you.
+Household Christmas budget and dates — leftover first, then ideas, buys, and a November–December calendar. Shared between two phones, with a lock so you cannot see what the other is getting you.
 
-## Live site
+## Live
 
-After Pages is enabled: `https://bigdaddydawg.github.io/WrapNest/`
+https://bigdaddydawg.github.io/Yule/
 
-## Install on phone
+## On your phone
 
-Open the live site in Chrome (Android) or Safari (iPhone), then **Add to Home Screen**. It installs as a standalone app.
+Open the live site in Chrome or Safari → **Add to Home Screen**.
 
-## What it does
+## Budget
 
-- Add or remove people
-- Jot gift ideas while you’re out
-- Set a budget per person and see what’s left
-- Mark something bought, with the item and price
-- Password-protect a person (budget, ideas, and buys are encrypted — only phones with the password can read them)
-- Everything else updates live on both phones
-- Tap an idea → **Find cheapest** to compare UK shops, then save the price you found
+- House cap is the real ceiling; person budgets can add up to more or less
+- Home screen shows leftover, spent, forecast if idea estimates land, and £ left per day until Christmas
+- Overspend warnings, last year’s spend, and who still needs ideas or buying
+- Shop list of unbought ideas; bought log with shop and date
+- Password-protect a person so budget, ideas, and buys stay on your phone
 
-Last year’s list is already loaded with 2025 budgets as a starting point. Bought presents from last year are noted under **Last Christmas** so you don’t buy the same thing twice — they are not counted as this year’s spend.
+## Dates
 
-## Locking each other
+- November and December 2026
+- Tap a day to add something (title, time, notes, optional person)
+- **Add to Google** opens Google Calendar on this phone so you can save it to *your* calendar
+- **Add upcoming to my calendar** downloads an `.ics` file this phone can import
+- Google tokens are never shared. Each of you pushes to your own calendar.
 
-Open the person (for example Rachel or Scott), tap **Password-protect**, and set a password only you know. On your phone it stays unlocked. On theirs it shows as locked until they have the password — which they shouldn’t.
+## Family Vault
+
+Realtime sync via the shared Family Vault. Locked people stay encrypted.

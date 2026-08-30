@@ -1,5 +1,5 @@
-const CACHE_NAME = "wrapnest-static-v1";
-const ASSET_V = "1";
+const CACHE_NAME = "yule-static-v3";
+const ASSET_V = "3";
 const CORE_ASSETS = [
   "./",
   "index.html",
@@ -48,7 +48,7 @@ self.addEventListener("activate", (event) => {
       .then(() => self.clients.matchAll({ type: "window" }))
       .then((clients) => {
         for (const client of clients) {
-          client.postMessage({ type: "WRAPNEST_SW_UPDATED", cache: CACHE_NAME });
+          client.postMessage({ type: "YULE_SW_UPDATED", cache: CACHE_NAME });
         }
       })
   );
@@ -57,17 +57,9 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
   if (url.origin !== location.origin || event.request.method !== "GET") return;
-
   const path = url.pathname;
-  const isHtmlNav =
-    event.request.mode === "navigate" || path.endsWith("/") || path.endsWith("/index.html");
-
-  if (isHtmlNav) {
-    event.respondWith(networkFirst(event.request, "index.html"));
-    return;
-  }
-
-  event.respondWith(networkFirst(event.request));
+  const isHtmlNav = event.request.mode === "navigate" || path.endsWith("/") || path.endsWith("/index.html");
+  event.respondWith(isHtmlNav ? networkFirst(event.request, "index.html") : networkFirst(event.request));
 });
 
 self.addEventListener("message", (event) => {

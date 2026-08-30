@@ -3,20 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="description" content="WrapNest — shared Christmas lists for ideas, budgets, and buys, with secrets kept." />
-  <meta name="theme-color" content="#f4eee4" />
+  <meta name="description" content="Yule — household Christmas budget, leftover, and dates. Shared, with secrets kept." />
+  <meta name="theme-color" content="#1c3a2c" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="apple-mobile-web-app-title" content="WrapNest" />
-  <title>WrapNest · Christmas lists</title>
-  <link rel="manifest" href="manifest.webmanifest?v=1" />
-  <link rel="icon" href="icon.svg?v=1" type="image/svg+xml" />
-  <link rel="apple-touch-icon" href="apple-touch-icon.png?v=1" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Yule" />
+  <title>Yule · Christmas budget</title>
+  <link rel="manifest" href="manifest.webmanifest?v=3" />
+  <link rel="icon" href="icon.svg?v=3" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png?v=3" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;1,9..144,500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=1" />
+  <link rel="stylesheet" href="styles.css?v=3" />
 </head>
 <body>
   <div class="sky" aria-hidden="true">
@@ -25,52 +25,95 @@
     <div class="blob blob-c"></div>
     <div class="vignette"></div>
   </div>
+  <canvas id="confetti" hidden></canvas>
 
   <div class="tab-stage">
-    <section id="panelPeople" class="tab-panel is-active" role="tabpanel">
+    <section id="panelBudget" class="tab-panel is-active" role="tabpanel">
       <header class="topbar">
         <div>
-          <p class="eyebrow">Christmas 2026 · made with love</p>
-          <h1 class="brand">WrapNest</h1>
+          <p class="eyebrow" id="countdown">Christmas 2026</p>
+          <h1 class="brand">Yule</h1>
         </div>
         <p class="sync-pill" id="syncPill">Syncing…</p>
       </header>
+      <div id="budgetView"></div>
+    </section>
+
+    <section id="panelPeople" class="tab-panel" role="tabpanel" hidden>
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Who you’re buying for</p>
+          <h1 class="brand">People</h1>
+        </div>
+      </header>
       <label class="search-wrap">
         <span class="sr-only">Search people</span>
-        <input id="search" type="search" placeholder="Search people…" autocomplete="off" />
+        <input id="search" type="search" placeholder="Search people or ideas…" autocomplete="off" />
       </label>
-      <p class="hint" id="peopleHint">Tap a name to jot an idea, set a budget, or mark something bought.</p>
+      <div class="chip-row" id="peopleFilters"></div>
       <div id="peopleList"></div>
       <p class="empty" id="peopleEmpty" hidden>Nobody on the list yet. Add someone you’re buying for.</p>
       <button type="button" class="fab" id="addPersonBtn">+ Add person</button>
     </section>
 
-    <section id="panelTotals" class="tab-panel" role="tabpanel" hidden>
+    <section id="panelShop" class="tab-panel" role="tabpanel" hidden>
       <header class="topbar">
         <div>
-          <p class="eyebrow">Christmas 2026</p>
-          <h1 class="brand">Totals</h1>
+          <p class="eyebrow">Still to hunt down</p>
+          <h1 class="brand">Shop</h1>
         </div>
       </header>
-      <p class="hint">Locked people stay out of these numbers until you unlock them on this phone.</p>
-      <div id="totalsView"></div>
+      <p class="hint" id="shopHint">Every idea you haven’t bought yet — tap to find a price or tick it off.</p>
+      <div id="shopView"></div>
+    </section>
+
+    <section id="panelDates" class="tab-panel" role="tabpanel" hidden>
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">November &amp; December</p>
+          <h1 class="brand">Dates</h1>
+        </div>
+      </header>
+      <div id="calendarView"></div>
+    </section>
+
+    <section id="panelBought" class="tab-panel" role="tabpanel" hidden>
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Already paid for</p>
+          <h1 class="brand">Bought</h1>
+        </div>
+      </header>
+      <div id="boughtView"></div>
     </section>
   </div>
 
   <nav class="tab-nav" role="tablist" aria-label="Main">
-    <button type="button" class="tab-btn is-active" data-tab="people" id="tabPeople">
-      <span class="tab-icon" aria-hidden="true">🎁</span>
+    <button type="button" class="tab-btn is-active" data-tab="budget">
+      <span class="tab-icon" aria-hidden="true">£</span>
+      <span>Budget</span>
+    </button>
+    <button type="button" class="tab-btn" data-tab="people">
+      <span class="tab-icon" aria-hidden="true">•</span>
       <span>People</span>
     </button>
-    <button type="button" class="tab-btn" data-tab="totals" id="tabTotals">
-      <span class="tab-icon" aria-hidden="true">£</span>
-      <span>Totals</span>
+    <button type="button" class="tab-btn" data-tab="shop">
+      <span class="tab-icon" aria-hidden="true">⌕</span>
+      <span>Shop</span>
+    </button>
+    <button type="button" class="tab-btn" data-tab="dates">
+      <span class="tab-icon" aria-hidden="true">▦</span>
+      <span>Dates</span>
+    </button>
+    <button type="button" class="tab-btn" data-tab="bought">
+      <span class="tab-icon" aria-hidden="true">✓</span>
+      <span>Bought</span>
     </button>
   </nav>
 
   <div class="sheet" id="personSheet" hidden>
     <div class="sheet-card" role="dialog" aria-labelledby="personName">
-      <button type="button" class="sheet-back" id="personBack">‹ List</button>
+      <button type="button" class="sheet-back" id="personBack">‹ Back</button>
       <div id="personBody"></div>
     </div>
   </div>
@@ -94,6 +137,21 @@
       <div class="modal-actions">
         <button type="button" class="ghost" id="addCancel">Cancel</button>
         <button type="submit" class="primary">Add</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="modal" id="houseModal">
+    <form class="modal-card" id="houseForm">
+      <h3>Household kitty</h3>
+      <p class="hint">The real ceiling for Christmas — person budgets can add up to more or less than this.</p>
+      <label>
+        <span>House cap</span>
+        <input id="houseBudget" type="number" inputmode="decimal" min="0" step="0.01" placeholder="£" required />
+      </label>
+      <div class="modal-actions">
+        <button type="button" class="ghost" id="houseCancel">Cancel</button>
+        <button type="submit" class="primary">Save</button>
       </div>
     </form>
   </dialog>
@@ -127,6 +185,10 @@
         <span>I found it for</span>
         <input id="foundPrice" type="number" inputmode="decimal" min="0" step="0.01" placeholder="£" />
       </label>
+      <label>
+        <span>Shop (optional)</span>
+        <input id="foundShop" type="text" maxlength="60" placeholder="Amazon, town, market…" autocomplete="off" />
+      </label>
       <p class="error" id="priceError" hidden></p>
       <div class="modal-actions">
         <button type="button" class="ghost" id="priceClose">Close</button>
@@ -135,10 +197,64 @@
     </div>
   </dialog>
 
+  <dialog class="modal" id="spendModal">
+    <form class="modal-card" id="spendForm">
+      <h3 id="spendTitle">Log a buy</h3>
+      <label>
+        <span>What did you buy?</span>
+        <input id="spendItem" type="text" required maxlength="160" placeholder="The thing" autocomplete="off" />
+      </label>
+      <label>
+        <span>Price</span>
+        <input id="spendPrice" type="number" inputmode="decimal" min="0" step="0.01" placeholder="£" required />
+      </label>
+      <label>
+        <span>Shop (optional)</span>
+        <input id="spendShop" type="text" maxlength="60" placeholder="Where from" autocomplete="off" />
+      </label>
+      <div class="modal-actions">
+        <button type="button" class="ghost" id="spendCancel">Cancel</button>
+        <button type="submit" class="primary">Add to spent</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="modal" id="eventModal">
+    <form class="modal-card" id="eventForm">
+      <h3 id="eventTitle">Add a date</h3>
+      <label>
+        <span>What is it?</span>
+        <input id="eventName" type="text" required maxlength="120" placeholder="Dinner, post deadline, school play…" autocomplete="off" />
+      </label>
+      <label>
+        <span>Date</span>
+        <input id="eventDate" type="date" required min="2026-11-01" max="2026-12-31" />
+      </label>
+      <label>
+        <span>Time (optional)</span>
+        <input id="eventTime" type="time" />
+      </label>
+      <label>
+        <span>Tied to someone (optional)</span>
+        <select id="eventPerson"></select>
+      </label>
+      <label>
+        <span>Notes</span>
+        <input id="eventNotes" type="text" maxlength="200" placeholder="Where, what to bring…" autocomplete="off" />
+      </label>
+      <p class="error" id="eventError" hidden></p>
+      <div class="modal-actions">
+        <button type="button" class="danger" id="eventDelete" hidden>Remove</button>
+        <button type="button" class="ghost" id="eventCancel">Cancel</button>
+        <button type="submit" class="primary">Save</button>
+      </div>
+    </form>
+  </dialog>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="family-vault-config.js?v=1"></script>
-  <script src="wrapnest-crypto.js?v=1"></script>
-  <script src="wrapnest-sync.js?v=1"></script>
-  <script src="app.js?v=1" defer></script>
+  <script src="family-vault-config.js?v=3"></script>
+  <script src="wrapnest-crypto.js?v=3"></script>
+  <script src="wrapnest-sync.js?v=3"></script>
+  <script src="app.js?v=3" defer></script>
 </body>
 </html>

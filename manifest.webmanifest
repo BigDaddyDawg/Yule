@@ -1,13 +1,13 @@
 {
-  "name": "WrapNest",
-  "short_name": "WrapNest",
-  "description": "Shared Christmas lists — ideas, budgets, and buys, with secrets kept.",
+  "name": "Yule",
+  "short_name": "Yule",
+  "description": "Household Christmas budget, leftover, and dates — shared, with secrets kept.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#f4eee4",
-  "theme_color": "#f4eee4",
+  "background_color": "#1c3a2c",
+  "theme_color": "#1c3a2c",
   "icons": [
     {
       "src": "icon.svg",

@@ -6,4 +6,6 @@ window.FAMILY_VAULT = {
   anonKey:
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9hb25hcm1wcXliYnZ0bGRsdXN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4NDM1MDksImV4cCI6MjA5OTQxOTUwOX0.VIYP8fNvEieHbFNLNRiTrTR-YNZP0IYkW1UmhIxgnqA",
   table: "wrapnest_people",
+  settingsTable: "wrapnest_settings",
+  eventsTable: "wrapnest_events",
 };

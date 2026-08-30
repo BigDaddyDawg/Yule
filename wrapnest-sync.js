@@ -1,10 +1,12 @@
 /**
- * WrapNest people sync via the Family Vault Supabase hub.
+ * Yule sync via the Family Vault Supabase hub.
  * Cloud is the source of truth, with a local cache for offline use.
  */
 (function () {
   const DEVICE_KEY = "family_vault_device_name_v1";
-  const CACHE_KEY = "wrapnest_people_cache_v1";
+  const CACHE_KEY = "yule_people_cache_v3";
+  const SETTINGS_CACHE = "yule_settings_cache_v1";
+  const EVENTS_CACHE = "yule_events_cache_v1";
   const POLL_MS = 8000;
   const YEAR = 2026;
 
@@ -41,8 +43,18 @@
     return h;
   }
 
-  function baseUrl() {
+  function peopleUrl() {
     const table = (cfg().table || "wrapnest_people").trim();
+    return `${cfg().url.replace(/\/$/, "")}/rest/v1/${table}`;
+  }
+
+  function settingsUrl() {
+    const table = (cfg().settingsTable || "wrapnest_settings").trim();
+    return `${cfg().url.replace(/\/$/, "")}/rest/v1/${table}`;
+  }
+
+  function eventsUrl() {
+    const table = (cfg().eventsTable || "wrapnest_events").trim();
     return `${cfg().url.replace(/\/$/, "")}/rest/v1/${table}`;
   }
 
@@ -63,6 +75,54 @@
     }
   }
 
+  function persistSettings(value) {
+    try {
+      localStorage.setItem(SETTINGS_CACHE, JSON.stringify(value || {}));
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function readSettingsCache() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(SETTINGS_CACHE) || "{}");
+      return raw && typeof raw === "object" ? raw : {};
+    } catch {
+      return {};
+    }
+  }
+
+  function persistEvents(events) {
+    try {
+      localStorage.setItem(EVENTS_CACHE, JSON.stringify(events || []));
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function readEventsCache() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(EVENTS_CACHE) || "[]");
+      return Array.isArray(raw) ? raw : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function normalizeEvent(row) {
+    return {
+      id: String(row.id),
+      year: Number(row.year) || YEAR,
+      title: String(row.title || "").trim(),
+      event_date: String(row.event_date || "").slice(0, 10),
+      event_time: row.event_time ? String(row.event_time).slice(0, 5) : "",
+      notes: String(row.notes || ""),
+      person_id: row.person_id ? String(row.person_id) : "",
+      updated_at: row.updated_at || null,
+      updated_by: row.updated_by || null,
+    };
+  }
+
   function normalizeRow(row) {
     return {
       id: String(row.id),
@@ -78,6 +138,10 @@
       ideas: Array.isArray(row.ideas) ? row.ideas : [],
       purchases: Array.isArray(row.purchases) ? row.purchases : [],
       last_year_note: String(row.last_year_note || ""),
+      last_year_spent: row.last_year_spent == null || row.last_year_spent === "" ? null : Number(row.last_year_spent),
+      last_year_budget: row.last_year_budget == null || row.last_year_budget === "" ? null : Number(row.last_year_budget),
+      wrapped: Boolean(row.wrapped),
+      note: String(row.note || ""),
       updated_at: row.updated_at || null,
       updated_by: row.updated_by || null,
     };
@@ -86,18 +150,21 @@
   function create(options) {
     const onRemoteChange = typeof options.onRemoteChange === "function" ? options.onRemoteChange : null;
     const year = Number(options.year) || YEAR;
+    const settingsKey = `household_${year}`;
 
     let client = null;
     let channel = null;
     let pollTimer = null;
     let lastKnown = [];
+    let lastSettings = readSettingsCache();
+    let lastEvents = readEventsCache();
     let applyingRemote = false;
 
     async function fetchRemote() {
       if (!ready()) return null;
       const url =
-        `${baseUrl()}?year=eq.${encodeURIComponent(year)}` +
-        `&select=id,year,name,group_name,sort_order,locked,salt,iv,ciphertext,budget,ideas,purchases,last_year_note,updated_at,updated_by` +
+        `${peopleUrl()}?year=eq.${encodeURIComponent(year)}` +
+        `&select=id,year,name,group_name,sort_order,locked,salt,iv,ciphertext,budget,ideas,purchases,last_year_note,last_year_spent,last_year_budget,wrapped,note,updated_at,updated_by` +
         `&order=sort_order.asc,name.asc`;
       const res = await fetch(url, {
         headers: {
@@ -105,15 +172,57 @@
           Authorization: `Bearer ${cfg().anonKey.trim()}`,
         },
       });
-      if (!res.ok) throw new Error(`WrapNest fetch failed (${res.status})`);
-      const rows = await res.json();
-      return (rows || []).map(normalizeRow);
+      if (!res.ok) throw new Error(`Yule fetch failed (${res.status})`);
+      return (await res.json() || []).map(normalizeRow);
     }
 
-    function applyRemote(people, notify) {
+    async function fetchSettings() {
+      if (!ready()) return lastSettings;
+      const url = `${settingsUrl()}?key=eq.${encodeURIComponent(settingsKey)}&select=value`;
+      const res = await fetch(url, {
+        headers: {
+          apikey: cfg().anonKey.trim(),
+          Authorization: `Bearer ${cfg().anonKey.trim()}`,
+        },
+      });
+      if (!res.ok) throw new Error(`Yule settings fetch failed (${res.status})`);
+      const rows = await res.json();
+      const value = rows?.[0]?.value && typeof rows[0].value === "object" ? rows[0].value : {};
+      lastSettings = value;
+      persistSettings(value);
+      return value;
+    }
+
+    async function fetchEvents() {
+      if (!ready()) return lastEvents;
+      const url =
+        `${eventsUrl()}?year=eq.${encodeURIComponent(year)}` +
+        `&select=id,year,title,event_date,event_time,notes,person_id,updated_at,updated_by` +
+        `&order=event_date.asc,event_time.asc`;
+      const res = await fetch(url, {
+        headers: {
+          apikey: cfg().anonKey.trim(),
+          Authorization: `Bearer ${cfg().anonKey.trim()}`,
+        },
+      });
+      if (!res.ok) throw new Error(`Yule events fetch failed (${res.status})`);
+      return (await res.json() || []).map(normalizeEvent);
+    }
+
+    function applyRemote(people, settings, events, notify) {
       lastKnown = people.map((p) => ({ ...p }));
+      if (settings) {
+        lastSettings = settings;
+        persistSettings(settings);
+      }
+      if (events) {
+        lastEvents = events.map((e) => ({ ...e }));
+        persistEvents(lastEvents);
+      }
       persist(lastKnown);
-      if (notify && onRemoteChange) onRemoteChange(lastKnown.map((p) => ({ ...p })));
+      if (notify && onRemoteChange) {
+        onRemoteChange(lastKnown.map((p) => ({ ...p })), { ...lastSettings }, lastEvents.map((e) => ({ ...e })));
+      }
       return lastKnown.map((p) => ({ ...p }));
     }
 
@@ -121,19 +230,20 @@
       const local = readCache();
       if (!ready()) {
         lastKnown = local;
-        return local.map((p) => ({ ...p }));
+        return { people: local.map((p) => ({ ...p })), settings: lastSettings, events: lastEvents.map((e) => ({ ...e })) };
       }
       try {
-        const remote = await fetchRemote();
+        const [remote, settings, events] = await Promise.all([fetchRemote(), fetchSettings(), fetchEvents()]);
         if (!remote) {
           lastKnown = local;
-          return local.map((p) => ({ ...p }));
+          return { people: local.map((p) => ({ ...p })), settings: lastSettings, events: lastEvents.map((e) => ({ ...e })) };
         }
-        return applyRemote(remote, false);
+        applyRemote(remote, settings, events, false);
+        return { people: remote.map((p) => ({ ...p })), settings: { ...lastSettings }, events: lastEvents.map((e) => ({ ...e })) };
       } catch (err) {
-        console.warn("WrapNest hydrate failed; using local cache", err);
+        console.warn("Yule hydrate failed; using local cache", err);
         lastKnown = local;
-        return local.map((p) => ({ ...p }));
+        return { people: local.map((p) => ({ ...p })), settings: lastSettings, events: lastEvents.map((e) => ({ ...e })) };
       }
     }
 
@@ -152,6 +262,10 @@
         ideas: person.locked ? [] : person.ideas || [],
         purchases: person.locked ? [] : person.purchases || [],
         last_year_note: person.locked ? "" : person.last_year_note || "",
+        last_year_spent: person.last_year_spent,
+        last_year_budget: person.last_year_budget,
+        wrapped: person.locked ? false : Boolean(person.wrapped),
+        note: person.locked ? "" : person.note || "",
         updated_at: new Date().toISOString(),
         updated_by: deviceName(),
       };
@@ -162,14 +276,14 @@
       lastKnown = lastKnown.filter((p) => p.id !== person.id).concat([normalizeRow({ ...person, ...row })]);
       persist(lastKnown);
       if (!ready()) return;
-      const res = await fetch(`${baseUrl()}?on_conflict=id`, {
+      const res = await fetch(`${peopleUrl()}?on_conflict=id`, {
         method: "POST",
         headers: headers("resolution=merge-duplicates,return=minimal"),
         body: JSON.stringify(row),
       });
       if (!res.ok) {
         const text = await res.text().catch(() => "");
-        throw new Error(`WrapNest upsert failed (${res.status}) ${text}`);
+        throw new Error(`Yule upsert failed (${res.status}) ${text}`);
       }
     }
 
@@ -177,8 +291,7 @@
       lastKnown = lastKnown.filter((p) => p.id !== id);
       persist(lastKnown);
       if (!ready()) return;
-      const url = `${baseUrl()}?id=eq.${encodeURIComponent(id)}`;
-      const res = await fetch(url, {
+      const res = await fetch(`${peopleUrl()}?id=eq.${encodeURIComponent(id)}`, {
         method: "DELETE",
         headers: {
           apikey: cfg().anonKey.trim(),
@@ -187,7 +300,75 @@
       });
       if (!res.ok) {
         const text = await res.text().catch(() => "");
-        throw new Error(`WrapNest delete failed (${res.status}) ${text}`);
+        throw new Error(`Yule delete failed (${res.status}) ${text}`);
+      }
+    }
+
+    async function saveSettings(patch) {
+      lastSettings = { ...lastSettings, ...(patch || {}) };
+      persistSettings(lastSettings);
+      if (!ready()) return lastSettings;
+      const res = await fetch(`${settingsUrl()}?on_conflict=key`, {
+        method: "POST",
+        headers: headers("resolution=merge-duplicates,return=minimal"),
+        body: JSON.stringify({
+          key: settingsKey,
+          value: lastSettings,
+          updated_at: new Date().toISOString(),
+          updated_by: deviceName(),
+        }),
+      });
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(`Yule settings save failed (${res.status}) ${text}`);
+      }
+      return lastSettings;
+    }
+
+    function toEventRow(event) {
+      return {
+        id: event.id,
+        year,
+        title: event.title,
+        event_date: event.event_date,
+        event_time: event.event_time || null,
+        notes: event.notes || "",
+        person_id: event.person_id || null,
+        updated_at: new Date().toISOString(),
+        updated_by: deviceName(),
+      };
+    }
+
+    async function upsertEvent(event) {
+      const row = toEventRow(event);
+      lastEvents = lastEvents.filter((e) => e.id !== event.id).concat([normalizeEvent(row)]);
+      persistEvents(lastEvents);
+      if (!ready()) return;
+      const res = await fetch(`${eventsUrl()}?on_conflict=id`, {
+        method: "POST",
+        headers: headers("resolution=merge-duplicates,return=minimal"),
+        body: JSON.stringify(row),
+      });
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(`Yule event save failed (${res.status}) ${text}`);
+      }
+    }
+
+    async function removeEvent(id) {
+      lastEvents = lastEvents.filter((e) => e.id !== id);
+      persistEvents(lastEvents);
+      if (!ready()) return;
+      const res = await fetch(`${eventsUrl()}?id=eq.${encodeURIComponent(id)}`, {
+        method: "DELETE",
+        headers: {
+          apikey: cfg().anonKey.trim(),
+          Authorization: `Bearer ${cfg().anonKey.trim()}`,
+        },
+      });
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(`Yule event delete failed (${res.status}) ${text}`);
       }
     }
 
@@ -195,14 +376,18 @@
       if (applyingRemote) return;
       applyingRemote = true;
       try {
-        const remote = await fetchRemote();
+        const [remote, settings, events] = await Promise.all([fetchRemote(), fetchSettings(), fetchEvents()]);
         if (!remote) return;
-        const a = JSON.stringify(remote);
-        const b = JSON.stringify(lastKnown);
-        if (a === b) return;
-        applyRemote(remote, true);
+        if (
+          JSON.stringify(remote) === JSON.stringify(lastKnown) &&
+          JSON.stringify(settings) === JSON.stringify(lastSettings) &&
+          JSON.stringify(events) === JSON.stringify(lastEvents)
+        ) {
+          return;
+        }
+        applyRemote(remote, settings, events, true);
       } catch (err) {
-        console.warn("WrapNest pull failed", err);
+        console.warn("Yule pull failed", err);
       } finally {
         applyingRemote = false;
       }
@@ -210,26 +395,18 @@
 
     function subscribe() {
       if (!ready()) return;
-      if (!pollTimer) {
-        pollTimer = window.setInterval(() => pullAndNotify(), POLL_MS);
-      }
+      if (!pollTimer) pollTimer = window.setInterval(() => pullAndNotify(), POLL_MS);
       if (!window.supabase?.createClient || channel) return;
       try {
         client = window.supabase.createClient(cfg().url.trim(), cfg().anonKey.trim());
         channel = client
-          .channel(`wrapnest-people-${year}`)
-          .on(
-            "postgres_changes",
-            {
-              event: "*",
-              schema: "public",
-              table: cfg().table || "wrapnest_people",
-            },
-            () => pullAndNotify()
-          )
+          .channel(`yule-${year}`)
+          .on("postgres_changes", { event: "*", schema: "public", table: cfg().table || "wrapnest_people" }, () => pullAndNotify())
+          .on("postgres_changes", { event: "*", schema: "public", table: cfg().settingsTable || "wrapnest_settings" }, () => pullAndNotify())
+          .on("postgres_changes", { event: "*", schema: "public", table: cfg().eventsTable || "wrapnest_events" }, () => pullAndNotify())
           .subscribe();
       } catch (err) {
-        console.warn("WrapNest realtime unavailable; polling only", err);
+        console.warn("Yule realtime unavailable; polling only", err);
       }
     }
 
@@ -249,6 +426,11 @@
       hydrate,
       upsert,
       remove,
+      saveSettings,
+      upsertEvent,
+      removeEvent,
+      settings: () => ({ ...lastSettings }),
+      readEvents: () => lastEvents.map((e) => ({ ...e })),
       subscribe,
       unsubscribe,
       pullAndNotify,
@@ -256,5 +438,7 @@
     };
   }
 
-  window.WrapNestSync = { create, YEAR };
+  window.YuleSync = { create, YEAR };
+  window.SleighSync = window.YuleSync;
+  window.MantelSync = window.YuleSync;
 })();
