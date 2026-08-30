@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="WrapNest">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f7efe4"/>
+      <stop offset="100%" stop-color="#c43c3c"/>
+    </linearGradient>
+    <linearGradient id="box" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e25555"/>
+      <stop offset="100%" stop-color="#b32626"/>
+    </linearGradient>
+    <linearGradient id="lid" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f07a7a"/>
+      <stop offset="100%" stop-color="#d64545"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="118" fill="url(#bg)"/>
+  <rect x="118" y="214" width="276" height="196" rx="28" fill="url(#box)"/>
+  <rect x="108" y="168" width="296" height="72" rx="24" fill="url(#lid)"/>
+  <rect x="236" y="168" width="40" height="242" fill="#e8c56b"/>
+  <rect x="118" y="286" width="276" height="40" fill="#e8c56b"/>
+  <path d="M256 168c-18-42-58-52-70-28 22-8 42 10 70 28 18-42 58-52 70-28-22-8-42 10-70 28z" fill="#e8c56b"/>
+  <circle cx="132" cy="128" r="18" fill="#2f6b45"/>
+  <circle cx="158" cy="118" r="16" fill="#3d8556"/>
+  <circle cx="148" cy="146" r="14" fill="#c43c3c"/>
+</svg>

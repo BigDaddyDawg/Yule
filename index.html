@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="description" content="WrapNest — shared Christmas lists for ideas, budgets, and buys, with secrets kept." />
+  <meta name="theme-color" content="#f4eee4" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="WrapNest" />
+  <title>WrapNest · Christmas lists</title>
+  <link rel="manifest" href="manifest.webmanifest?v=1" />
+  <link rel="icon" href="icon.svg?v=1" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png?v=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;1,9..144,500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css?v=1" />
+</head>
+<body>
+  <div class="sky" aria-hidden="true">
+    <div class="blob blob-a"></div>
+    <div class="blob blob-b"></div>
+    <div class="blob blob-c"></div>
+    <div class="vignette"></div>
+  </div>
+
+  <div class="tab-stage">
+    <section id="panelPeople" class="tab-panel is-active" role="tabpanel">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Christmas 2026 · made with love</p>
+          <h1 class="brand">WrapNest</h1>
+        </div>
+        <p class="sync-pill" id="syncPill">Syncing…</p>
+      </header>
+      <label class="search-wrap">
+        <span class="sr-only">Search people</span>
+        <input id="search" type="search" placeholder="Search people…" autocomplete="off" />
+      </label>
+      <p class="hint" id="peopleHint">Tap a name to jot an idea, set a budget, or mark something bought.</p>
+      <div id="peopleList"></div>
+      <p class="empty" id="peopleEmpty" hidden>Nobody on the list yet. Add someone you’re buying for.</p>
+      <button type="button" class="fab" id="addPersonBtn">+ Add person</button>
+    </section>
+
+    <section id="panelTotals" class="tab-panel" role="tabpanel" hidden>
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Christmas 2026</p>
+          <h1 class="brand">Totals</h1>
+        </div>
+      </header>
+      <p class="hint">Locked people stay out of these numbers until you unlock them on this phone.</p>
+      <div id="totalsView"></div>
+    </section>
+  </div>
+
+  <nav class="tab-nav" role="tablist" aria-label="Main">
+    <button type="button" class="tab-btn is-active" data-tab="people" id="tabPeople">
+      <span class="tab-icon" aria-hidden="true">🎁</span>
+      <span>People</span>
+    </button>
+    <button type="button" class="tab-btn" data-tab="totals" id="tabTotals">
+      <span class="tab-icon" aria-hidden="true">£</span>
+      <span>Totals</span>
+    </button>
+  </nav>
+
+  <div class="sheet" id="personSheet" hidden>
+    <div class="sheet-card" role="dialog" aria-labelledby="personName">
+      <button type="button" class="sheet-back" id="personBack">‹ List</button>
+      <div id="personBody"></div>
+    </div>
+  </div>
+
+  <dialog class="modal" id="addModal">
+    <form class="modal-card" id="addForm">
+      <h3>Add someone</h3>
+      <label>
+        <span>Name</span>
+        <input id="addName" type="text" required maxlength="80" placeholder="Who are you buying for?" autocomplete="off" />
+      </label>
+      <label>
+        <span>Group</span>
+        <input id="addGroup" type="text" list="groupOptions" maxlength="80" placeholder="e.g. Friends" autocomplete="off" />
+      </label>
+      <datalist id="groupOptions"></datalist>
+      <label>
+        <span>Budget (optional)</span>
+        <input id="addBudget" type="number" inputmode="decimal" min="0" step="0.01" placeholder="£" />
+      </label>
+      <div class="modal-actions">
+        <button type="button" class="ghost" id="addCancel">Cancel</button>
+        <button type="submit" class="primary">Add</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="modal" id="lockModal">
+    <form class="modal-card" id="lockForm">
+      <h3 id="lockTitle">Lock this person</h3>
+      <p class="hint" id="lockHint">Only phones with this password can see the budget, ideas, and buys. Use this for each other.</p>
+      <label>
+        <span>Password</span>
+        <input id="lockPass" type="password" required minlength="4" autocomplete="off" />
+      </label>
+      <label id="lockConfirmWrap">
+        <span>Confirm password</span>
+        <input id="lockConfirm" type="password" minlength="4" autocomplete="off" />
+      </label>
+      <p class="error" id="lockError" hidden></p>
+      <div class="modal-actions">
+        <button type="button" class="ghost" id="lockCancel">Cancel</button>
+        <button type="submit" class="primary" id="lockSubmit">Lock</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="modal" id="priceModal">
+    <div class="modal-card">
+      <h3 id="priceTitle">Find a price</h3>
+      <p class="hint" id="priceHint"></p>
+      <div class="shop-grid" id="shopGrid"></div>
+      <label>
+        <span>I found it for</span>
+        <input id="foundPrice" type="number" inputmode="decimal" min="0" step="0.01" placeholder="£" />
+      </label>
+      <p class="error" id="priceError" hidden></p>
+      <div class="modal-actions">
+        <button type="button" class="ghost" id="priceClose">Close</button>
+        <button type="button" class="primary" id="priceBought">Mark bought</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="family-vault-config.js?v=1"></script>
+  <script src="wrapnest-crypto.js?v=1"></script>
+  <script src="wrapnest-sync.js?v=1"></script>
+  <script src="app.js?v=1" defer></script>
+</body>
+</html>
