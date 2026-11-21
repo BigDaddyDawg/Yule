@@ -1,5 +1,5 @@
 (() => {
-  const ASSET_V = "5";
+  const ASSET_V = "6";
   const SIDES = ["Scott's dad's side", "Scott's mum's side", "Ours", "Rachel's side", "Friends"];
   const PASS_KEY = "yule_passwords_v1";
   const OLD_PASS_KEYS = ["sleigh_passwords_v1", "wrapnest_passwords_v1", "mantel_passwords_v1"];
@@ -268,22 +268,30 @@
     });
   }
 
+  function hidePerson() {
+    activeId = null;
+    document.getElementById("personSheet").hidden = true;
+  }
+
   function openPerson(id) {
+    if (!personById(id)) return;
+    const same = activeId === id && history.state?.yule === "person" && history.state.id === id;
     activeId = id;
     document.getElementById("personSheet").hidden = false;
     renderPerson(id);
+    if (!same) history.pushState({ yule: "person", id }, "");
   }
 
   function closePerson() {
-    activeId = null;
-    document.getElementById("personSheet").hidden = true;
+    if (history.state?.yule === "person") history.back();
+    else hidePerson();
   }
 
   function renderPerson(id) {
     const person = personById(id);
     const body = document.getElementById("personBody");
     if (!person) {
-      closePerson();
+      hidePerson();
       return;
     }
     const lastBits = [];
@@ -421,8 +429,9 @@
     if (action === "remove-person") {
       if (!confirm(`Remove ${person.name}?`)) return;
       people = people.filter((item) => item.id !== personId);
-      closePerson();
+      hidePerson();
       render();
+      if (history.state?.yule === "person") history.back();
       run(() => sync.remove(personId));
       return;
     }
@@ -437,6 +446,17 @@
       run(() => savePerson(person));
     }
   }
+
+  window.addEventListener("popstate", () => {
+    const state = history.state;
+    if (state?.yule === "person" && personById(state.id)) {
+      activeId = state.id;
+      document.getElementById("personSheet").hidden = false;
+      renderPerson(state.id);
+      return;
+    }
+    hidePerson();
+  });
 
   document.getElementById("personBack").addEventListener("click", closePerson);
   document.getElementById("addPersonBtn").addEventListener("click", () => {
@@ -514,6 +534,7 @@
   }
 
   async function boot() {
+    if (!history.state?.yule) history.replaceState({ yule: "list" }, "");
     registerServiceWorker();
     setPill(sync.ready() ? "Live" : "On this phone", sync.ready());
     try {
@@ -527,6 +548,11 @@
       setPill("On this phone", false);
     }
     render();
+    if (history.state?.yule === "person" && personById(history.state.id)) {
+      activeId = history.state.id;
+      document.getElementById("personSheet").hidden = false;
+      renderPerson(history.state.id);
+    }
     sync.subscribe();
   }
 
