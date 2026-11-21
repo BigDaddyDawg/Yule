@@ -1,7 +1,7 @@
 {
   "name": "Yule",
   "short_name": "Yule",
-  "description": "Household Christmas budget, leftover, and dates — shared, with secrets kept.",
+  "description": "People, ideas, purchases, and the Christmas budget.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
