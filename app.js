@@ -1,5 +1,6 @@
 (() => {
-  const ASSET_V = "4";
+  const ASSET_V = "5";
+  const SIDES = ["Scott's dad's side", "Scott's mum's side", "Ours", "Rachel's side", "Friends"];
   const PASS_KEY = "yule_passwords_v1";
   const OLD_PASS_KEYS = ["sleigh_passwords_v1", "wrapnest_passwords_v1", "mantel_passwords_v1"];
   const YEAR = window.YuleSync?.YEAR || 2026;
@@ -204,19 +205,62 @@
     });
   }
 
+  function sideNames() {
+    const names = [...SIDES];
+    for (const person of people) {
+      const name = (person.group_name || "").trim();
+      if (name && !names.includes(name)) names.push(name);
+    }
+    return names;
+  }
+
+  function sideOptions(selected) {
+    return sideNames()
+      .map((name) => `<option value="${escapeHtml(name)}"${name === selected ? " selected" : ""}>${escapeHtml(name)}</option>`)
+      .join("");
+  }
+
+  function budgetState(person) {
+    if (person.budget == null || person.budget === "" || !Number.isFinite(Number(person.budget))) return "none";
+    return spentOf(person) > Number(person.budget) + 0.009 ? "over" : "in";
+  }
+
+  function personSummary(person) {
+    if (!person._open) return { text: "Hidden on this phone", over: false };
+    const ideas = person.ideas.length;
+    const bought = (person.purchases || []).length;
+    const state = budgetState(person);
+    const status = state === "over" ? "Over budget" : state === "in" ? "In budget" : "No budget";
+    return {
+      text: `${ideas} idea${ideas === 1 ? "" : "s"} · ${bought} bought · ${status}`,
+      over: state === "over",
+    };
+  }
+
   function renderPeople() {
     const list = document.getElementById("peopleList");
     const empty = document.getElementById("peopleEmpty");
     empty.hidden = people.length > 0;
-    list.innerHTML = people
-      .map((person) => {
-        const detail = !person._open
-          ? "Hidden on this phone"
-          : `${person.ideas.length} idea${person.ideas.length === 1 ? "" : "s"} · ${money(spentOf(person))} bought`;
-        return `<button type="button" class="person-row" data-open="${escapeHtml(person.id)}">
-          <strong>${escapeHtml(person.name)}</strong>
-          <span>${escapeHtml(detail)}</span>
-        </button>`;
+    const sections = [];
+    for (const name of sideNames()) {
+      const members = people.filter((person) => (person.group_name || "").trim() === name);
+      if (members.length) sections.push([name, members]);
+    }
+    const loose = people.filter((person) => !(person.group_name || "").trim());
+    if (loose.length) sections.push(["No side", loose]);
+
+    list.innerHTML = sections
+      .map(([name, members]) => {
+        const rows = members
+          .map((person) => {
+            const summary = personSummary(person);
+            return `<button type="button" class="person-row" data-open="${escapeHtml(person.id)}">
+              <strong>${escapeHtml(person.name)}</strong>
+              <span class="${summary.over ? "is-over" : ""}">${escapeHtml(summary.text)}</span>
+            </button>`;
+          })
+          .join("");
+        return `<h2 class="group-label">${escapeHtml(name)}</h2>${rows}`;
       })
       .join("");
     list.querySelectorAll("[data-open]").forEach((btn) => {
@@ -252,6 +296,10 @@
           <span>Name</span>
           <input id="editName" type="text" maxlength="80" value="${escapeHtml(person.name)}" autocomplete="off" />
         </label>
+        <label class="name-label">
+          <span>Side</span>
+          <select id="editSide">${sideOptions(person.group_name || "")}</select>
+        </label>
         <p class="hint">Ideas and purchases are hidden on this phone.</p>
         ${lastBits.length ? `<p class="last-line">Last year · ${lastBits.join(" · ")}</p>` : ""}
         <button type="button" class="danger" data-action="remove-person">Remove person</button>
@@ -264,6 +312,10 @@
       <label class="name-label">
         <span>Name</span>
         <input id="editName" type="text" maxlength="80" value="${escapeHtml(person.name)}" autocomplete="off" />
+      </label>
+      <label class="name-label">
+        <span>Side</span>
+        <select id="editSide">${sideOptions(person.group_name || "")}</select>
       </label>
       ${lastBits.length ? `<p class="last-line">Last year · ${lastBits.join(" · ")}</p>` : ""}
       <h3>Ideas</h3>
@@ -325,6 +377,12 @@
       next.name = name;
       run(() => savePerson(next));
     });
+    document.getElementById("editSide")?.addEventListener("change", (event) => {
+      const next = personById(person.id);
+      if (!next) return;
+      next.group_name = event.target.value;
+      run(() => savePerson(next));
+    });
 
     document.getElementById("ideaForm")?.addEventListener("submit", (event) => {
       event.preventDefault();
@@ -383,6 +441,7 @@
   document.getElementById("personBack").addEventListener("click", closePerson);
   document.getElementById("addPersonBtn").addEventListener("click", () => {
     document.getElementById("addName").value = "";
+    document.getElementById("addSide").innerHTML = sideOptions(sideNames()[0] || "");
     document.getElementById("addModal").showModal();
     document.getElementById("addName").focus();
   });
@@ -395,7 +454,7 @@
       id: crypto.randomUUID(),
       year: YEAR,
       name,
-      group_name: "",
+      group_name: document.getElementById("addSide").value,
       sort_order: people.reduce((max, item) => Math.max(max, item.sort_order || 0), 0) + 10,
       locked: false,
       budget: null,

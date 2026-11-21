@@ -1,5 +1,5 @@
-const CACHE_NAME = "yule-static-v4";
-const ASSET_V = "4";
+const CACHE_NAME = "yule-static-v5";
+const ASSET_V = "5";
 const CORE_ASSETS = [
   "./",
   "index.html",
