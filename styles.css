@@ -126,6 +126,11 @@ input, select {
 
 .last-line { margin: 0.35rem 0 0; }
 
+a.person-row {
+  text-decoration: none;
+  color: inherit;
+}
+
 .person-row {
   display: grid;
   gap: 0.15rem;
